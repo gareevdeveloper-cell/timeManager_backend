@@ -24,10 +24,22 @@ Backend-сервис для работы с командой над проект
 
 ## Локальный запуск
 
+### Вариант 1: Docker Compose (рекомендуется)
+
 ```bash
 cp .env.example .env
 # Заполни JWT_SECRET в .env (минимум 32 символа)
-docker-compose up -d db
+docker compose up -d --build
+```
+
+Запускает API (порт 8080), PostgreSQL (5432) и MinIO (9000, консоль 9001).
+
+### Вариант 2: Только БД + Go
+
+```bash
+cp .env.example .env
+# Заполни JWT_SECRET, MINIO_* в .env
+docker compose up -d db minio
 go run ./cmd/api
 ```
 

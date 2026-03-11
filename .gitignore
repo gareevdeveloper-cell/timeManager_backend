@@ -12,7 +12,7 @@
 *.out
 bin/
 dist/
-
+.vscode
 # Go workspace
 go.work
 

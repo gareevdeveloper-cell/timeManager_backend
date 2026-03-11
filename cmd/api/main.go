@@ -21,10 +21,10 @@ import (
 )
 
 func main() {
-	// Загружаем .env в переменные окружения (игнорируем ошибку, если файла нет)
-	error := godotenv.Load()
-
-	log.Fatalf("error loading .env: %v", error)
+	// Загружаем .env в переменные окружения (в Docker переменные приходят через env_file)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("warning: .env not found, using environment variables: %v", err)
+	}
 
 	cfg, err := config.Load()
 	if err != nil {

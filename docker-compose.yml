@@ -29,7 +29,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: testik
+      POSTGRES_DB: timemanager
     ports:
       - "5432:5432"
     volumes:

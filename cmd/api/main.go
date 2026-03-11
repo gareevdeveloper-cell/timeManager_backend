@@ -12,8 +12,9 @@ package main
 import (
 	"log"
 
-	"github.com/joho/godotenv"
 	_ "testik/docs"
+
+	"github.com/joho/godotenv"
 
 	"testik/internal/app"
 	"testik/internal/config"
@@ -21,7 +22,9 @@ import (
 
 func main() {
 	// Загружаем .env в переменные окружения (игнорируем ошибку, если файла нет)
-	_ = godotenv.Load()
+	error := godotenv.Load()
+
+	log.Fatalf("error loading .env: %v", error)
 
 	cfg, err := config.Load()
 	if err != nil {

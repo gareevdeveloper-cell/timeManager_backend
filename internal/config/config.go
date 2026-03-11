@@ -42,9 +42,10 @@ func Load() (*Config, error) {
 	dbURL := env.Get("DATABASE_URL", "")
 	if dbURL == "" {
 		dbURL = fmt.Sprintf(
-			"postgres://%s:%s@localhost:%s/%s?sslmode=disable",
+			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 			env.Get("DB_USER", "postgres"),
 			env.Get("DB_PASSWORD", "postgres"),
+			env.Get("DB_HOST", "localhost"),
 			env.Get("DB_PORT", "5432"),
 			env.Get("DB_NAME", "testik"),
 		)

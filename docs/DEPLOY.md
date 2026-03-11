@@ -26,7 +26,7 @@ JWT_SECRET=your-super-secret-key-min-32-chars
 |--------|----------|
 | `DEPLOY_HOST` | IP или hostname сервера |
 | `DEPLOY_USER` | SSH-пользователь |
-| `DEPLOY_SSH_KEY` | Приватный SSH-ключ |
+| `DEPLOY_SSH_KEY` | Приватный SSH-ключ в base64 (см. ниже) |
 | `DEPLOY_PATH` | Путь на сервере (например `/home/user1/testik`) |
 
 ### 3. SSH-ключ
@@ -36,7 +36,17 @@ ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/deploy_key -N ""
 ssh-copy-id -i ~/.ssh/deploy_key.pub deploy@YOUR_SERVER
 ```
 
-Содержимое `~/.ssh/deploy_key` → GitHub Secret `DEPLOY_SSH_KEY`.
+**Важно:** GitHub Secrets искажает многострочные ключи. Храни ключ в base64:
+
+```bash
+# Linux / Git Bash
+cat ~/.ssh/deploy_key | base64 -w 0
+
+# macOS
+base64 -i ~/.ssh/deploy_key | tr -d '\n'
+```
+
+Скопируй вывод целиком → GitHub Secret `DEPLOY_SSH_KEY`.
 
 ---
 

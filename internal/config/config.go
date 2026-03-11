@@ -24,14 +24,14 @@ type Config struct {
 	MinIOPublicURL string
 
 	// OAuth — авторизация через Google, Yandex, GitHub
-	OAuthRedirectBase      string // базовый URL для callback (например https://api.example.com)
-	OAuthFrontendRedirect   string // URL фронтенда для редиректа с токеном (?token=...)
-	OAuthGoogleID          string
-	OAuthGoogleSecret      string
-	OAuthYandexID          string
-	OAuthYandexSecret      string
-	OAuthGitHubID          string
-	OAuthGitHubSecret      string
+	OAuthRedirectBase     string // базовый URL для callback (например https://api.example.com)
+	OAuthFrontendRedirect string // URL фронтенда для редиректа с токеном (?token=...)
+	OAuthGoogleID         string
+	OAuthGoogleSecret     string
+	OAuthYandexID         string
+	OAuthYandexSecret     string
+	OAuthGitHubID         string
+	OAuthGitHubSecret     string
 }
 
 // Load загружает конфигурацию из переменных окружения.
@@ -42,10 +42,9 @@ func Load() (*Config, error) {
 	dbURL := env.Get("DATABASE_URL", "")
 	if dbURL == "" {
 		dbURL = fmt.Sprintf(
-			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			"postgres://%s:%s@localhost:%s/%s?sslmode=disable",
 			env.Get("DB_USER", "postgres"),
 			env.Get("DB_PASSWORD", "postgres"),
-			env.Get("DB_HOST", "localhost"),
 			env.Get("DB_PORT", "5432"),
 			env.Get("DB_NAME", "testik"),
 		)
@@ -86,12 +85,12 @@ func Load() (*Config, error) {
 		MinIOPublicURL: minioPublicURL,
 
 		OAuthRedirectBase:     oauthRedirectBase,
-		OAuthFrontendRedirect:  oauthFrontendRedirect,
-		OAuthGoogleID:      oauthGoogleID,
-		OAuthGoogleSecret:  oauthGoogleSecret,
-		OAuthYandexID:      oauthYandexID,
-		OAuthYandexSecret:  oauthYandexSecret,
-		OAuthGitHubID:      oauthGitHubID,
-		OAuthGitHubSecret:  oauthGitHubSecret,
+		OAuthFrontendRedirect: oauthFrontendRedirect,
+		OAuthGoogleID:         oauthGoogleID,
+		OAuthGoogleSecret:     oauthGoogleSecret,
+		OAuthYandexID:         oauthYandexID,
+		OAuthYandexSecret:     oauthYandexSecret,
+		OAuthGitHubID:         oauthGitHubID,
+		OAuthGitHubSecret:     oauthGitHubSecret,
 	}, nil
 }

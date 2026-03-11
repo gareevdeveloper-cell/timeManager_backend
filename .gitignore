@@ -49,3 +49,8 @@ temp/
 
 # Docker
 docker-compose.override.yml
+
+ARCHITECTURE.md
+DOMAIN.md
+CODING_GUIDELINES.md
+PROMPTING.md

@@ -17,6 +17,8 @@ services:
       MINIO_USE_SSL: "false"
     env_file:
       - .env
+    volumes:
+      - .env:/app/.env:ro
     depends_on:
       db:
         condition: service_healthy

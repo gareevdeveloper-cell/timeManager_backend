@@ -1,0 +1,2053 @@
+basePath: /
+definitions:
+  internal_auth.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+  internal_auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_auth.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      token_type:
+        type: string
+    type: object
+  internal_auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_auth.RegisterResponse:
+    properties:
+      data:
+        properties:
+          email:
+            type: string
+          user_id:
+            type: string
+        type: object
+    type: object
+  internal_organization.AddMemberRequest:
+    properties:
+      role:
+        enum:
+        - administrator
+        - participant
+        - user
+        example: participant
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - user_id
+    type: object
+  internal_organization.CreateRequest:
+    properties:
+      name:
+        example: My Company
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  internal_organization.CreateResponse:
+    properties:
+      data:
+        properties:
+          avatar_url:
+            type: string
+          created_at:
+            type: string
+          id:
+            type: string
+          name:
+            type: string
+          owner_id:
+            type: string
+          slug:
+            type: string
+          status:
+            type: string
+          updated_at:
+            type: string
+        type: object
+    type: object
+  internal_organization.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+  internal_organization.ListResponse:
+    properties:
+      data:
+        properties:
+          organizations:
+            items:
+              properties:
+                avatar_url:
+                  type: string
+                created_at:
+                  type: string
+                id:
+                  type: string
+                name:
+                  type: string
+                owner_id:
+                  type: string
+                slug:
+                  type: string
+                status:
+                  type: string
+                updated_at:
+                  type: string
+              type: object
+            type: array
+        type: object
+    type: object
+  internal_organization.UpdateRequest:
+    properties:
+      name:
+        example: My Company Updated
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  internal_project.CreateProjectRequest:
+    properties:
+      description:
+        example: Описание проекта
+        type: string
+      key:
+        example: APP
+        maxLength: 50
+        minLength: 1
+        type: string
+      name:
+        example: My App
+        maxLength: 255
+        minLength: 1
+        type: string
+      team_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - key
+    - name
+    type: object
+  internal_project.CreateStatusRequest:
+    properties:
+      key:
+        example: TODO
+        maxLength: 50
+        minLength: 1
+        type: string
+      order:
+        example: 0
+        type: integer
+      title:
+        example: To Do
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - key
+    - title
+    type: object
+  internal_project.CreateTaskRequest:
+    properties:
+      assignee_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      description:
+        example: Описание задачи
+        type: string
+      due_date:
+        example: "2025-03-15T12:00:00Z"
+        type: string
+      priority:
+        example: MEDIUM
+        type: string
+      title:
+        example: Реализовать API
+        maxLength: 500
+        minLength: 1
+        type: string
+    required:
+    - title
+    type: object
+  internal_project.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+  internal_project.UpdateStatusRequest:
+    properties:
+      key:
+        example: TODO
+        type: string
+      order:
+        type: integer
+      title:
+        example: To Do
+        type: string
+    type: object
+  internal_project.UpdateTaskRequest:
+    properties:
+      assignee_id:
+        type: string
+      description:
+        type: string
+      due_date:
+        type: string
+      order:
+        type: integer
+      priority:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  internal_team.AddMemberRequest:
+    properties:
+      role:
+        enum:
+        - administrator
+        - participant
+        - user
+        example: participant
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - user_id
+    type: object
+  internal_team.CreateRequest:
+    properties:
+      description:
+        example: Команда разработки бэкенда
+        type: string
+      name:
+        example: Backend Team
+        maxLength: 255
+        minLength: 1
+        type: string
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - name
+    - organization_id
+    type: object
+  internal_team.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+  internal_team.TeamResponse:
+    properties:
+      data:
+        properties:
+          created_at:
+            type: string
+          creator_id:
+            type: string
+          description:
+            type: string
+          id:
+            type: string
+          name:
+            type: string
+          organization_id:
+            type: string
+        type: object
+    type: object
+  internal_team.UpdateRequest:
+    properties:
+      description:
+        example: Обновлённое описание
+        type: string
+      name:
+        example: Backend Team Updated
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  internal_user.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+  internal_user.UpdateProfileRequest:
+    properties:
+      about:
+        type: string
+      position:
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_user.UpdateWorkStatusRequest:
+    properties:
+      work_status:
+        type: string
+    required:
+    - work_status
+    type: object
+  internal_user.UserResponse:
+    properties:
+      data:
+        properties:
+          about:
+            type: string
+          created_at:
+            type: string
+          email:
+            type: string
+          firstname:
+            type: string
+          id:
+            type: string
+          lastname:
+            type: string
+          position:
+            type: string
+          role:
+            type: string
+          skills:
+            items:
+              type: string
+            type: array
+          status:
+            type: string
+          work_status:
+            type: string
+        type: object
+    type: object
+  internal_user.WorkStatusHistoryEntry:
+    properties:
+      changed_at:
+        type: string
+      changed_by:
+        type: string
+      id:
+        type: string
+      user_id:
+        type: string
+      work_status:
+        type: string
+    type: object
+  internal_user.WorkStatusHistoryResponse:
+    properties:
+      data:
+        properties:
+          history:
+            items:
+              $ref: '#/definitions/internal_user.WorkStatusHistoryEntry'
+            type: array
+        type: object
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Backend API для работы с командой над проектом.
+  title: timeManager API
+  version: "1.0"
+paths:
+  /api/v1/auth/{provider}/callback:
+    get:
+      description: Обрабатывает callback от OAuth-провайдера, создаёт/находит пользователя,
+        редирект на фронтенд с токеном.
+      parameters:
+      - description: google | yandex | github
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Authorization code from provider
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State (CSRF protection)
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to frontend with ?token=...
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      summary: OAuth — callback от провайдера
+      tags:
+      - auth
+  /api/v1/auth/{provider}/redirect:
+    get:
+      description: 'Редирект на страницу авторизации Google, Yandex или GitHub. Поддерживаемые
+        provider: google, yandex, github.'
+      parameters:
+      - description: google | yandex | github
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to OAuth provider
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      summary: OAuth — редирект на провайдера
+      tags:
+      - auth
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет учётные данные и возвращает JWT access token.
+      parameters:
+      - description: Email и пароль
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_auth.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      summary: Вход в систему
+      tags:
+      - auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт нового пользователя по email и паролю. Пароль должен быть
+        не менее 8 символов.
+      parameters:
+      - description: Email и пароль
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_auth.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      summary: Регистрация пользователя
+      tags:
+      - auth
+  /api/v1/files/{path}:
+    get:
+      description: 'Возвращает файл (картинку) из MinIO по частичному пути. Путь:
+        users/{id}/avatar.jpg, organizations/{id}/avatar.jpg, teams/{id}/avatar.jpg'
+      parameters:
+      - description: Частичный путь к файлу (например users/uuid/avatar.jpg)
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: Файл
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить файл из хранилища
+      tags:
+      - files
+  /api/v1/organizations:
+    get:
+      description: Возвращает организации, в которых текущий пользователь является
+        участником.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_organization.ListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список моих организаций
+      tags:
+      - organizations
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Создаёт организацию от имени текущего пользователя. Slug генерируется
+        автоматически из name. Поддерживает JSON или multipart/form-data (name + опционально
+        avatar).
+      parameters:
+      - description: 'Название организации (JSON) или multipart: name, avatar'
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_organization.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_organization.CreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать организацию
+      tags:
+      - organizations
+  /api/v1/organizations/{id}:
+    get:
+      description: Возвращает организацию. Доступ только для членов организации.
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить организацию по ID
+      tags:
+      - organizations
+    patch:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Обновляет название и опционально аватарку. Slug остаётся неизменным.
+        Поддерживает JSON или multipart (name + опционально avatar).
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Новое название (JSON) или multipart: name, avatar'
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_organization.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_organization.CreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить организацию
+      tags:
+      - organizations
+  /api/v1/organizations/{id}/archive:
+    post:
+      consumes:
+      - application/json
+      description: Переводит организацию в статус archived.
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_organization.CreateResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Архивировать организацию
+      tags:
+      - organizations
+  /api/v1/organizations/{id}/avatar:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Загружает аватарку в MinIO. multipart/form-data с полем avatar
+        (jpeg/png/webp/gif, max 5MB).
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Файл изображения
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_organization.CreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Установить аватарку организации
+      tags:
+      - organizations
+  /api/v1/organizations/{id}/members:
+    get:
+      description: Возвращает всех пользователей, входящих в организацию. Доступ только
+        для членов организации.
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список участников организации
+      tags:
+      - organizations
+    post:
+      consumes:
+      - application/json
+      description: Добавляет пользователя в организацию. Пользователь может быть только
+        в одной организации.
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID пользователя
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_organization.AddMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавить участника в организацию
+      tags:
+      - organizations
+  /api/v1/organizations/{id}/members/{user_id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_organization.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить участника из организации
+      tags:
+      - organizations
+  /api/v1/organizations/{id}/teams:
+    get:
+      parameters:
+      - description: ID организации
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить команды организации
+      tags:
+      - teams
+  /api/v1/projects:
+    get:
+      description: Возвращает проекты, доступные пользователю (владелец или член команды).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список проектов
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Создаёт проект. key — уникальный короткий код (например, APP).
+      parameters:
+      - description: Данные проекта
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_project.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать проект
+      tags:
+      - projects
+  /api/v1/projects/{projectId}:
+    get:
+      description: Возвращает проект по ID.
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить проект
+      tags:
+      - projects
+  /api/v1/projects/{projectId}/board:
+    get:
+      description: Возвращает доску с колонками (TODO, IN_PROGRESS, IN_REVIEW, DONE)
+        и задачами в каждой.
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Канбан-доска проекта
+      tags:
+      - projects
+  /api/v1/projects/{projectId}/members:
+    get:
+      description: 'Возвращает участников проекта с ролями. Доступ: владелец или член
+        команды.'
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Участники проекта
+      tags:
+      - projects
+  /api/v1/projects/{projectId}/statuses:
+    get:
+      description: Возвращает динамические статусы проекта для построения канбан-доски.
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Статусы (колонки) проекта
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новый статус в проекте для канбан-доски.
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Данные статуса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_project.CreateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать статус (колонку)
+      tags:
+      - projects
+  /api/v1/projects/{projectId}/tasks:
+    get:
+      description: Возвращает задачи проекта. Опционально фильтр по status (query
+        param).
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Фильтр по статусу
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список задач проекта
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Создаёт задачу в проекте. key генерируется автоматически (PROJECTKEY-N).
+      parameters:
+      - description: ID проекта
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Данные задачи
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_project.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать задачу
+      tags:
+      - tasks
+  /api/v1/projects/statuses/{statusId}:
+    delete:
+      description: Удаляет статус (колонку). Задачи с этим статусом останутся в БД
+        — при отображении доски могут быть не показаны.
+      parameters:
+      - description: ID статуса
+        in: path
+        name: statusId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить статус
+      tags:
+      - projects
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет статус (колонку) проекта.
+      parameters:
+      - description: ID статуса
+        in: path
+        name: statusId
+        required: true
+        type: string
+      - description: Поля для обновления
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_project.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить статус
+      tags:
+      - projects
+  /api/v1/tasks/{taskId}:
+    delete:
+      description: Удаляет задачу.
+      parameters:
+      - description: ID задачи
+        in: path
+        name: taskId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить задачу
+      tags:
+      - tasks
+    get:
+      description: Возвращает задачу по ID.
+      parameters:
+      - description: ID задачи
+        in: path
+        name: taskId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить задачу
+      tags:
+      - tasks
+    patch:
+      consumes:
+      - application/json
+      description: Частичное обновление задачи (статус, приоритет, assignee, порядок
+        в колонке и т.д.).
+      parameters:
+      - description: ID задачи
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: Поля для обновления
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_project.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить задачу
+      tags:
+      - tasks
+  /api/v1/teams:
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Создаёт команду в организации. Создатель должен быть членом организации.
+        Поддерживает JSON или multipart (name, description, organization_id + опционально
+        avatar).
+      parameters:
+      - description: Данные команды
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_team.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_team.TeamResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать команду
+      tags:
+      - teams
+  /api/v1/teams/{id}:
+    delete:
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить команду
+      tags:
+      - teams
+    get:
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_team.TeamResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить команду по ID
+      tags:
+      - teams
+    patch:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Поддерживает JSON или multipart (name, description + опционально
+        avatar).
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_team.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_team.TeamResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить команду
+      tags:
+      - teams
+  /api/v1/teams/{id}/avatar:
+    put:
+      consumes:
+      - multipart/form-data
+      description: multipart/form-data с полем avatar. Только член организации может
+        изменить.
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Файл изображения
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_team.TeamResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Установить аватарку команды
+      tags:
+      - teams
+  /api/v1/teams/{id}/members:
+    get:
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список участников команды
+      tags:
+      - teams
+    post:
+      consumes:
+      - application/json
+      description: Добавлять можно только пользователей, состоящих в организации команды.
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID пользователя
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_team.AddMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавить участника в команду
+      tags:
+      - teams
+  /api/v1/teams/{id}/members/{user_id}:
+    delete:
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_team.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить участника из команды
+      tags:
+      - teams
+  /api/v1/teams/{id}/projects:
+    get:
+      description: Возвращает проекты команды. Только для членов команды.
+      parameters:
+      - description: ID команды
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Проекты команды
+      tags:
+      - teams
+  /api/v1/users/me:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные авторизованного пользователя. Требует Bearer
+        token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_user.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Текущий пользователь
+      tags:
+      - user
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет поля about (о себе), position (должность), skills (скиллы).
+        Скиллы создаются в БД при первом добавлении.
+      parameters:
+      - description: Данные профиля
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_user.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_user.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить профиль текущего пользователя
+      tags:
+      - user
+  /api/v1/users/me/avatar:
+    put:
+      consumes:
+      - multipart/form-data
+      description: multipart/form-data с полем avatar (jpeg/png/webp/gif, max 5MB).
+      parameters:
+      - description: Файл изображения
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_user.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Установить аватарку текущего пользователя
+      tags:
+      - user
+  /api/v1/users/me/work-status:
+    put:
+      consumes:
+      - application/json
+      description: 'Обновляет рабочий статус: working, resting, lunch, vacation, sick_leave,
+        business_trip. Запись добавляется в историю.'
+      parameters:
+      - description: Рабочий статус
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_user.UpdateWorkStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_user.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить рабочий статус текущего пользователя
+      tags:
+      - user
+  /api/v1/users/me/work-status/history:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает историю изменений рабочего статуса текущего пользователя.
+      parameters:
+      - description: Лимит записей (по умолчанию 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_user.WorkStatusHistoryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: История изменений рабочего статуса
+      tags:
+      - user
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

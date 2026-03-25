@@ -2,6 +2,9 @@ package user
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 
 	"testik/internal/domain"
 )
@@ -9,9 +12,16 @@ import (
 // UserRepository — интерфейс доступа к пользователям (профиль).
 type UserRepository interface {
 	GetByID(ctx context.Context, id string) (*domain.User, error)
-	UpdateProfile(ctx context.Context, userID string, about, position string) error
+	UpdateProfile(ctx context.Context, userID string, firstname, lastname string, birthday *time.Time, about, position string) error
 	UpdateAvatarURL(ctx context.Context, userID string, avatarURL string) error
 	UpdateWorkStatus(ctx context.Context, userID string, workStatus string) error
+	UpdateCurrentTaskID(ctx context.Context, userID string, taskID *uuid.UUID) error
+}
+
+// AssigneeTaskReader — доступ к задачам для «мои задачи» и текущей задачи в работе.
+type AssigneeTaskReader interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.Task, error)
+	ListByAssigneeID(ctx context.Context, assigneeID uuid.UUID) ([]*domain.Task, error)
 }
 
 // WorkStatusHistoryRepository — интерфейс доступа к истории статусов.

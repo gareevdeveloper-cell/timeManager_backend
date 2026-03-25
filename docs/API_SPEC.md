@@ -187,17 +187,21 @@ GET /auth/{provider}/callback?code=...&state=...
     "email": "user@example.com",
     "firstname": "string",
     "lastname": "string",
+    "birthday": "1990-05-15",
     "about": "О себе",
     "position": "Backend Developer",
     "skills": ["Go", "PostgreSQL", "Docker"],
     "role": "user",
     "status": "active",
     "work_status": "working",
+    "current_task_id": "uuid",
     "avatar_url": "/api/v1/files/users/uuid/avatar.jpg",
     "created_at": "2025-03-09T00:00:00Z"
   }
 }
 ```
+
+`current_task_id` — UUID задачи «в работе», если задана; иначе поле можно не возвращать.
 
 **work_status:** working | resting | lunch | vacation | sick_leave | business_trip
 
@@ -262,13 +266,16 @@ GET /auth/{provider}/callback?code=...&state=...
 
 #### PATCH /users/me — Обновить профиль
 
-Обновляет поля профиля: about (о себе), position (должность), skills (скиллы). Все поля опциональны — при отсутствии сохраняется текущее значение. Скиллы создаются в БД при первом добавлении.
+Обновляет поля профиля: firstname, lastname, birthday, about (о себе), position (должность), skills (скиллы). Все поля опциональны — при отсутствии сохраняется текущее значение. Скиллы создаются в БД при первом добавлении.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request:**
 ```json
 {
+  "firstname": "Иван",
+  "lastname": "Иванов",
+  "birthday": "1990-05-15",
   "about": "О себе",
   "position": "Backend Developer",
   "skills": ["Go", "PostgreSQL", "Docker"]
@@ -277,6 +284,9 @@ GET /auth/{provider}/callback?code=...&state=...
 
 | Поле | Тип | Обязательно | Описание |
 |------|-----|-------------|----------|
+| firstname | string | нет | Имя |
+| lastname | string | нет | Фамилия |
+| birthday | string | нет | Дата рождения: `YYYY-MM-DD` или RFC3339; пустая строка `""` — сбросить дату |
 | about | string | нет | О себе |
 | position | string | нет | Должность |
 | skills | string[] | нет | Список скиллов (создаются в БД при отсутствии) |
@@ -284,6 +294,57 @@ GET /auth/{provider}/callback?code=...&state=...
 **Response 200:** данные пользователя с обновлённым профилем.
 
 **Ошибки:** 400 (validation_error), 401 (unauthorized), 500 (internal_error)
+
+---
+
+#### GET /users/me/tasks — Мои задачи (исполнитель)
+
+Возвращает задачи, где текущий пользователь назначен исполнителем (`assignee_id`). У каждой записи поле **`in_work`**: `true` только у той задачи, которая выбрана как текущая «в работе» (не больше одной; совпадает с `current_task_id` в профиле).
+
+**Response 200:**
+```json
+{
+  "data": {
+    "tasks": [
+      {
+        "id": "uuid",
+        "project_id": "uuid",
+        "key": "APP-1",
+        "title": "...",
+        "in_work": true,
+        "...": "остальные поля задачи как в проекте"
+      }
+    ]
+  }
+}
+```
+
+**Ошибки:** 401 (unauthorized), 500 (internal_error)
+
+---
+
+#### PUT /users/me/current-task — Текущая задача в работе
+
+Устанавливает одну задачу как «текущую в работе». Задача должна существовать и быть **назначена на пользователя** (исполнитель). Одновременно может быть только одна такая задача; повторный вызов с другим `task_id` заменяет выбор.
+
+**Request:**
+```json
+{ "task_id": "550e8400-e29b-41d4-a716-446655440000" }
+```
+
+Сброс (ничего не «в работе»):
+```json
+{ "task_id": null }
+```
+или `"task_id": ""`.
+
+| Поле | Описание |
+|------|----------|
+| task_id | UUID задачи; `null` или пустая строка — сброс |
+
+**Response 200:** данные пользователя (как GET /users/me), с обновлённым `current_task_id`.
+
+**Ошибки:** 400 (validation_error), 401 (unauthorized), 403 (forbidden — задача не назначена на вас), 404 (not_found — задача не найдена), 500 (internal_error)
 
 ---
 
@@ -343,6 +404,8 @@ GET /auth/{provider}/callback?code=...&state=...
 
 Возвращает всех пользователей, входящих в организацию. Доступ только для членов организации.
 
+У каждого участника: **`work_status`** (working | resting | lunch | vacation | sick_leave | business_trip), **`current_task_id`** (UUID или `null`) и **`current_task`** — объект `{ "id", "title", "project_id" }` или `null` — текущая задача «в работе» (для канбана/канваса без отдельного `GET /tasks/:id`).
+
 **Response 200:**
 ```json
 {
@@ -355,7 +418,14 @@ GET /auth/{provider}/callback?code=...&state=...
         "lastname": "string",
         "middlename": "string",
         "role": "administrator",
-        "avatar_url": "/api/v1/files/users/uuid/avatar.jpg"
+        "work_status": "working",
+        "avatar_url": "/api/v1/files/users/uuid/avatar.jpg",
+        "current_task_id": "uuid",
+        "current_task": {
+          "id": "uuid",
+          "title": "Задача в работе",
+          "project_id": "uuid"
+        }
       }
     ]
   }
@@ -363,6 +433,8 @@ GET /auth/{provider}/callback?code=...&state=...
 ```
 
 **role:** administrator | participant | user
+
+**work_status:** working | resting | lunch | vacation | sick_leave | business_trip
 
 **Ошибки:** 401 (unauthorized), 404 (not_found)
 
@@ -616,6 +688,8 @@ GET /auth/{provider}/callback?code=...&state=...
 
 #### GET /teams/:id/members — Список участников команды
 
+У каждого участника: **`work_status`**, **`current_task_id`** и **`current_task`** `{ id, title, project_id }` — как у списка участников организации.
+
 **Response 200:**
 ```json
 {
@@ -628,7 +702,14 @@ GET /auth/{provider}/callback?code=...&state=...
         "lastname": "string",
         "middlename": "string",
         "role": "administrator",
-        "avatar_url": "/api/v1/files/users/uuid/avatar.jpg"
+        "work_status": "working",
+        "avatar_url": "/api/v1/files/users/uuid/avatar.jpg",
+        "current_task_id": "uuid",
+        "current_task": {
+          "id": "uuid",
+          "title": "Задача в работе",
+          "project_id": "uuid"
+        }
       }
     ]
   }
@@ -636,6 +717,8 @@ GET /auth/{provider}/callback?code=...&state=...
 ```
 
 **role:** administrator | participant | user
+
+**work_status:** working | resting | lunch | vacation | sick_leave | business_trip
 
 ---
 
@@ -753,7 +836,7 @@ GET /auth/{provider}/callback?code=...&state=...
 
 #### GET /projects/:projectId/members — Участники проекта
 
-Возвращает участников проекта с ролями. Доступ: владелец или член команды.
+Возвращает участников проекта с ролями. У каждого: **`current_task_id`** и **`current_task`** `{ id, title, project_id }`. Доступ: владелец или член команды.
 
 **Response 200:**
 ```json
@@ -767,7 +850,13 @@ GET /auth/{provider}/callback?code=...&state=...
         "lastname": "string",
         "middlename": "string",
         "role": "administrator",
-        "avatar_url": "/api/v1/files/users/uuid/avatar.jpg"
+        "avatar_url": "/api/v1/files/users/uuid/avatar.jpg",
+        "current_task_id": "uuid",
+        "current_task": {
+          "id": "uuid",
+          "title": "Задача в работе",
+          "project_id": "uuid"
+        }
       }
     ]
   }
@@ -824,7 +913,7 @@ GET /auth/{provider}/callback?code=...&state=...
 
 **Response 201:** данные созданного статуса.
 
-**Ошибки:** 409 (status_key_exists)
+**Ошибки:** 403 (forbidden), 404 (not_found), 409 (status_key_exists, status_title_exists — отображаемое имя уже занято другой колонкой в этом проекте, без учёта регистра и краевых пробелов)
 
 ---
 
@@ -841,19 +930,27 @@ GET /auth/{provider}/callback?code=...&state=...
 
 **Response 200:** обновлённый статус.
 
+**Ошибки:** 403 (forbidden), 404 (not_found), 409 (status_title_exists — как при создании)
+
 ---
 
 #### DELETE /projects/statuses/:statusId — Удалить статус
 
+Обязательный query-параметр **`move_to_status_id`** — UUID другой колонки **того же проекта**, в которую переносятся все задачи из удаляемой колонки (обновляются и `status_id`, и ключ `status`). Удаляемый статус и целевой должны различаться. **Последний** статус в проекте удалить нельзя.
+
+**Пример:** `DELETE /api/v1/projects/statuses/{statusId}?move_to_status_id={uuid}`
+
 **Response 204:** No Content
 
-Задачи с удалённым статусом останутся в БД, но не будут отображаться на доске.
+**Ошибки:** 400 (validation_error — нет или невалидный `move_to_status_id`, целевой статус не из этого проекта или совпадает с удаляемым), 403 (forbidden), 404 (not_found), 409 (last_status — в проекте осталась только эта колонка)
 
 ---
 
 #### GET /projects/:projectId/board — Канбан-доска
 
 Возвращает колонки (динамические статусы проекта) с задачами в каждой. Порядок колонок определяется полем order статусов.
+
+Опциональные query-параметры те же, что у `GET /projects/:projectId/tasks`: `status`, `assignee_id`, `title`, `type`, `due_from`, `due_to` (см. таблицу выше). В каждой колонке остаются только задачи, подходящие под фильтр; пустые колонки возвращаются с `tasks: []`.
 
 **Response 200:**
 ```json
@@ -871,14 +968,19 @@ GET /auth/{provider}/callback?code=...&state=...
 
 #### POST /projects/:projectId/tasks — Создать задачу
 
+author_id (reporter_id) берётся из текущего аутентифицированного пользователя.
+
 **Request:**
 ```json
 {
   "title": "Реализовать API",
   "description": "Описание задачи",
+  "type": "TASK",
   "priority": "MEDIUM",
   "assignee_id": "uuid",
-  "due_date": "2025-03-15T12:00:00Z"
+  "due_date": "2025-03-15T12:00:00Z",
+  "tags": ["backend", "api"],
+  "result_url": "https://example.com/result"
 }
 ```
 
@@ -886,9 +988,12 @@ GET /auth/{provider}/callback?code=...&state=...
 |------|-----|-------------|----------|
 | title | string | да | 1–500 символов |
 | description | string | нет | Описание задачи |
+| type | string | нет | BUG, TASK, STORY (по умолчанию TASK) |
 | priority | string | нет | LOW, MEDIUM, HIGH, CRITICAL (по умолчанию MEDIUM) |
 | assignee_id | string | нет | UUID исполнителя |
 | due_date | string | нет | RFC3339 (ISO дата/время) |
+| tags | string[] | нет | Список тегов/меток |
+| result_url | string | нет | Ссылка на результат |
 
 **Response 201:**
 ```json
@@ -900,10 +1005,15 @@ GET /auth/{provider}/callback?code=...&state=...
     "title": "Реализовать API",
     "description": "...",
     "status": "TODO",
+    "status_id": "uuid",
+    "type": "TASK",
     "priority": "MEDIUM",
     "assignee_id": null,
     "reporter_id": "uuid",
+    "author_id": "uuid",
     "due_date": "2025-03-15T12:00:00Z",
+    "tags": ["backend", "api"],
+    "result_url": "https://example.com/result",
     "order": 0,
     "created_at": "2025-03-10T00:00:00Z",
     "updated_at": "2025-03-10T00:00:00Z"
@@ -911,13 +1021,26 @@ GET /auth/{provider}/callback?code=...&state=...
 }
 ```
 
+**status** — ключ колонки из `project_statuses`; **status_id** — UUID строки в `project_statuses` (оба поля согласованы). **type** — BUG, TASK, STORY. **priority** — LOW, MEDIUM, HIGH, CRITICAL. **due_date** — ISO 8601 (RFC3339).
+
 **Ошибки:** 400 (validation_error), 403 (forbidden), 404 (not_found)
 
 ---
 
 #### GET /projects/:projectId/tasks — Список задач проекта
 
-Опционально фильтр по статусу: `?status=TODO`.
+Опциональные query-параметры (можно комбинировать):
+
+| Параметр | Описание |
+|----------|----------|
+| `status` | Фильтр по статусу (ключ колонки), например `TODO` |
+| `assignee_id` | UUID исполнителя |
+| `title` | Подстрока заголовка (без учёта регистра) |
+| `type` | Тип задачи: `BUG`, `TASK`, `STORY` |
+| `due_from` | Нижняя граница срока (RFC3339); учитываются только задачи с `due_date` ≥ `due_from` |
+| `due_to` | Верхняя граница срока (RFC3339); учитываются только задачи с `due_date` ≤ `due_to` |
+
+Пример: `GET .../tasks?status=IN_PROGRESS&assignee_id=...&title=fix&type=BUG&due_from=2025-03-01T00:00:00Z&due_to=2025-03-31T23:59:59Z`
 
 **Response 200:**
 ```json
@@ -931,10 +1054,15 @@ GET /auth/{provider}/callback?code=...&state=...
         "title": "...",
         "description": "...",
         "status": "TODO",
+        "status_id": "uuid",
+        "type": "TASK",
         "priority": "MEDIUM",
         "assignee_id": null,
         "reporter_id": "uuid",
+        "author_id": "uuid",
         "due_date": null,
+        "tags": [],
+        "result_url": null,
         "order": 0,
         "created_at": "...",
         "updated_at": "..."
@@ -954,23 +1082,27 @@ GET /auth/{provider}/callback?code=...&state=...
 
 #### PATCH /tasks/:taskId — Обновить задачу
 
-Частичное обновление (статус, приоритет, assignee, order и т.д.).
+Частичное обновление (title, description, status, type, priority, assignee_id, due_date, tags, result_url, order).
 
 **Request:**
 ```json
 {
   "title": "Новый заголовок",
+  "description": "Обновлённое описание",
   "status": "IN_PROGRESS",
+  "type": "BUG",
   "priority": "HIGH",
   "assignee_id": "uuid",
   "due_date": "2025-03-20T00:00:00Z",
+  "tags": ["urgent", "hotfix"],
+  "result_url": "https://example.com/patch",
   "order": 1
 }
 ```
 
-Все поля опциональны. При смене статуса задача переносится в другую колонку канбана.
+Все поля опциональны. При смене статуса задача переносится в другую колонку канбана. Пустая строка assignee_id сбрасывает исполнителя. Пустой массив tags очищает теги.
 
-**Response 200:** обновлённая задача.
+**Response 200:** обновлённая задача (все поля, включая type, tags, result_url).
 
 ---
 
@@ -989,6 +1121,8 @@ GET /auth/{provider}/callback?code=...&state=...
 | POST | /auth/login | Вход | — |
 | GET | /users/me | Текущий пользователь | Bearer |
 | PATCH | /users/me | Обновить профиль | Bearer |
+| GET | /users/me/tasks | Мои задачи (исполнитель), поле in_work | Bearer |
+| PUT | /users/me/current-task | Текущая задача в работе | Bearer |
 | PUT | /users/me/avatar | Установить аватарку пользователя | Bearer |
 | PUT | /users/me/work-status | Обновить рабочий статус | Bearer |
 | GET | /users/me/work-status/history | История изменений статуса | Bearer |
@@ -1043,4 +1177,6 @@ GET /auth/{provider}/callback?code=...&state=...
 | user_already_in_team | Пользователь уже в команде |
 | key_exists | Проект с таким key уже существует |
 | status_key_exists | Статус с таким key уже существует в проекте |
+| status_title_exists | Статус с таким отображаемым названием уже есть в проекте |
+| last_status | Нельзя удалить последнюю колонку статуса в проекте |
 | internal_error | Внутренняя ошибка сервера |

@@ -625,7 +625,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает всех пользователей, входящих в организацию. Доступ только для членов организации.",
+                "description": "Возвращает всех пользователей, входящих в организацию. У каждого участника: work_status, current_task_id и current_task {id, title, project_id} — текущая задача в работе (если есть). Доступ только для членов организации.",
                 "produces": [
                     "application/json"
                 ],
@@ -1160,7 +1160,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает доску с колонками (TODO, IN_PROGRESS, IN_REVIEW, DONE) и задачами в каждой.",
+                "description": "Возвращает доску с колонками (динамические статусы) и задачами в каждой. Те же query-фильтры, что у списка задач: status, assignee_id, title, type, due_from, due_to.",
                 "produces": [
                     "application/json"
                 ],
@@ -1175,6 +1175,42 @@ const docTemplate = `{
                         "name": "projectId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Фильтр по статусу",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Фильтр по исполнителю (UUID)",
+                        "name": "assignee_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Подстрока заголовка (без учёта регистра)",
+                        "name": "title",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тип: BUG, TASK, STORY",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Срок с (RFC3339)",
+                        "name": "due_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Срок по (RFC3339)",
+                        "name": "due_to",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1183,6 +1219,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_project.ErrorResponse"
                         }
                     },
                     "401": {
@@ -1219,7 +1261,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает участников проекта с ролями. Доступ: владелец или член команды.",
+                "description": "Возвращает участников проекта с ролями. У каждого: current_task_id и current_task {id, title, project_id} — текущая задача в работе (если есть). Доступ: владелец или член команды.",
                 "produces": [
                     "application/json"
                 ],
@@ -1418,7 +1460,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает задачи проекта. Опционально фильтр по status (query param).",
+                "description": "Возвращает задачи проекта. Опциональные query-фильтры: status, assignee_id, title (подстрока), type, due_from, due_to (RFC3339).",
                 "produces": [
                     "application/json"
                 ],
@@ -1439,6 +1481,36 @@ const docTemplate = `{
                         "description": "Фильтр по статусу",
                         "name": "status",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Фильтр по исполнителю (UUID)",
+                        "name": "assignee_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Подстрока заголовка (без учёта регистра)",
+                        "name": "title",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тип: BUG, TASK, STORY",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Срок с (RFC3339), только задачи с due_date \u003e= due_from",
+                        "name": "due_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Срок по (RFC3339), только задачи с due_date \u003c= due_to",
+                        "name": "due_to",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1447,6 +1519,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_project.ErrorResponse"
                         }
                     },
                     "401": {
@@ -2040,6 +2118,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "У каждого участника: work_status, current_task_id и current_task {id, title, project_id} — текущая задача в работе (если есть).",
                 "produces": [
                     "application/json"
                 ],
@@ -2318,7 +2397,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет поля about (о себе), position (должность), skills (скиллы). Скиллы создаются в БД при первом добавлении.",
+                "description": "Обновляет firstname, lastname, birthday (YYYY-MM-DD или RFC3339; пустая строка сбрасывает дату), about, position, skills. Скиллы создаются в БД при первом добавлении.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2406,6 +2485,116 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/me/current-task": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Задача должна быть назначена на пользователя (assignee). Одновременно «в работе» только одна задача. task_id: null или \"\" — сброс.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Установить текущую задачу в работе",
+                "parameters": [
+                    {
+                        "description": "task_id — UUID или null",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.SetCurrentTaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_user.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/me/tasks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Задачи, где текущий пользователь — исполнитель. Поле in_work: true только у задачи, выбранной как «текущая в работе» (не более одной).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Мои задачи (исполнитель)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -2818,11 +3007,29 @@ const docTemplate = `{
                     "type": "string",
                     "example": "MEDIUM"
                 },
+                "result_url": {
+                    "type": "string",
+                    "example": "https://example.com/result"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "backend",
+                        "api"
+                    ]
+                },
                 "title": {
                     "type": "string",
                     "maxLength": 500,
                     "minLength": 1,
                     "example": "Реализовать API"
+                },
+                "type": {
+                    "type": "string",
+                    "example": "TASK"
                 }
             }
         },
@@ -2876,10 +3083,22 @@ const docTemplate = `{
                 "priority": {
                     "type": "string"
                 },
+                "result_url": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -3006,10 +3225,29 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_user.SetCurrentTaskRequest": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "description": "UUID задачи; null или пустая строка — сброс текущей задачи",
+                    "type": "string"
+                }
+            }
+        },
         "internal_user.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "about": {
+                    "type": "string"
+                },
+                "birthday": {
+                    "description": "YYYY-MM-DD или RFC3339; пустая строка — сброс даты рождения",
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "lastname": {
                     "type": "string"
                 },
                 "position": {
@@ -3043,7 +3281,13 @@ const docTemplate = `{
                         "about": {
                             "type": "string"
                         },
+                        "birthday": {
+                            "type": "string"
+                        },
                         "created_at": {
+                            "type": "string"
+                        },
+                        "current_task_id": {
                             "type": "string"
                         },
                         "email": {

@@ -23,6 +23,8 @@ func registerAuthRoutes(v1 *gin.RouterGroup, authHandler *auth.Handler, authServ
 	{
 		protected.GET("/users/me", userHandler.Me)
 		protected.PATCH("/users/me", userHandler.UpdateProfile)
+		protected.GET("/users/me/tasks", userHandler.ListMyTasks)
+		protected.PUT("/users/me/current-task", userHandler.SetCurrentTask)
 		protected.PUT("/users/me/avatar", userHandler.SetAvatar)
 		protected.PUT("/users/me/work-status", userHandler.UpdateWorkStatus)
 		protected.GET("/users/me/work-status/history", userHandler.GetWorkStatusHistory)

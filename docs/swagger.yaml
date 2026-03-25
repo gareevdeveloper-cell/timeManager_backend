@@ -199,10 +199,23 @@ definitions:
       priority:
         example: MEDIUM
         type: string
+      result_url:
+        example: https://example.com/result
+        type: string
+      tags:
+        example:
+        - backend
+        - api
+        items:
+          type: string
+        type: array
       title:
         example: Реализовать API
         maxLength: 500
         minLength: 1
+        type: string
+      type:
+        example: TASK
         type: string
     required:
     - title
@@ -240,9 +253,17 @@ definitions:
         type: integer
       priority:
         type: string
+      result_url:
+        type: string
       status:
         type: string
+      tags:
+        items:
+          type: string
+        type: array
       title:
+        type: string
+      type:
         type: string
     type: object
   internal_team.AddMemberRequest:
@@ -328,9 +349,22 @@ definitions:
             type: string
         type: object
     type: object
+  internal_user.SetCurrentTaskRequest:
+    properties:
+      task_id:
+        description: UUID задачи; null или пустая строка — сброс текущей задачи
+        type: string
+    type: object
   internal_user.UpdateProfileRequest:
     properties:
       about:
+        type: string
+      birthday:
+        description: YYYY-MM-DD или RFC3339; пустая строка — сброс даты рождения
+        type: string
+      firstname:
+        type: string
+      lastname:
         type: string
       position:
         type: string
@@ -352,7 +386,11 @@ definitions:
         properties:
           about:
             type: string
+          birthday:
+            type: string
           created_at:
+            type: string
+          current_task_id:
             type: string
           email:
             type: string
@@ -810,8 +848,9 @@ paths:
       - organizations
   /api/v1/organizations/{id}/members:
     get:
-      description: Возвращает всех пользователей, входящих в организацию. Доступ только
-        для членов организации.
+      description: 'Возвращает всех пользователей, входящих в организацию. У каждого
+        участника: work_status, current_task_id и current_task {id, title, project_id}
+        — текущая задача в работе (если есть). Доступ только для членов организации.'
       parameters:
       - description: ID организации
         in: path
@@ -1068,13 +1107,38 @@ paths:
       - projects
   /api/v1/projects/{projectId}/board:
     get:
-      description: Возвращает доску с колонками (TODO, IN_PROGRESS, IN_REVIEW, DONE)
-        и задачами в каждой.
+      description: 'Возвращает доску с колонками (динамические статусы) и задачами
+        в каждой. Те же query-фильтры, что у списка задач: status, assignee_id, title,
+        type, due_from, due_to.'
       parameters:
       - description: ID проекта
         in: path
         name: projectId
         required: true
+        type: string
+      - description: Фильтр по статусу
+        in: query
+        name: status
+        type: string
+      - description: Фильтр по исполнителю (UUID)
+        in: query
+        name: assignee_id
+        type: string
+      - description: Подстрока заголовка (без учёта регистра)
+        in: query
+        name: title
+        type: string
+      - description: 'Тип: BUG, TASK, STORY'
+        in: query
+        name: type
+        type: string
+      - description: Срок с (RFC3339)
+        in: query
+        name: due_from
+        type: string
+      - description: Срок по (RFC3339)
+        in: query
+        name: due_to
         type: string
       produces:
       - application/json
@@ -1084,6 +1148,10 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -1107,8 +1175,9 @@ paths:
       - projects
   /api/v1/projects/{projectId}/members:
     get:
-      description: 'Возвращает участников проекта с ролями. Доступ: владелец или член
-        команды.'
+      description: 'Возвращает участников проекта с ролями. У каждого: current_task_id
+        и current_task {id, title, project_id} — текущая задача в работе (если есть).
+        Доступ: владелец или член команды.'
       parameters:
       - description: ID проекта
         in: path
@@ -1237,8 +1306,8 @@ paths:
       - projects
   /api/v1/projects/{projectId}/tasks:
     get:
-      description: Возвращает задачи проекта. Опционально фильтр по status (query
-        param).
+      description: 'Возвращает задачи проекта. Опциональные query-фильтры: status,
+        assignee_id, title (подстрока), type, due_from, due_to (RFC3339).'
       parameters:
       - description: ID проекта
         in: path
@@ -1249,6 +1318,26 @@ paths:
         in: query
         name: status
         type: string
+      - description: Фильтр по исполнителю (UUID)
+        in: query
+        name: assignee_id
+        type: string
+      - description: Подстрока заголовка (без учёта регистра)
+        in: query
+        name: title
+        type: string
+      - description: 'Тип: BUG, TASK, STORY'
+        in: query
+        name: type
+        type: string
+      - description: Срок с (RFC3339), только задачи с due_date >= due_from
+        in: query
+        name: due_from
+        type: string
+      - description: Срок по (RFC3339), только задачи с due_date <= due_to
+        in: query
+        name: due_to
+        type: string
       produces:
       - application/json
       responses:
@@ -1257,6 +1346,10 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_project.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -1733,6 +1826,8 @@ paths:
       - teams
   /api/v1/teams/{id}/members:
     get:
+      description: 'У каждого участника: work_status, current_task_id и current_task
+        {id, title, project_id} — текущая задача в работе (если есть).'
       parameters:
       - description: ID команды
         in: path
@@ -1914,8 +2009,9 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Обновляет поля about (о себе), position (должность), skills (скиллы).
-        Скиллы создаются в БД при первом добавлении.
+      description: Обновляет firstname, lastname, birthday (YYYY-MM-DD или RFC3339;
+        пустая строка сбрасывает дату), about, position, skills. Скиллы создаются
+        в БД при первом добавлении.
       parameters:
       - description: Данные профиля
         in: body
@@ -1980,6 +2076,78 @@ paths:
       security:
       - BearerAuth: []
       summary: Установить аватарку текущего пользователя
+      tags:
+      - user
+  /api/v1/users/me/current-task:
+    put:
+      consumes:
+      - application/json
+      description: 'Задача должна быть назначена на пользователя (assignee). Одновременно
+        «в работе» только одна задача. task_id: null или "" — сброс.'
+      parameters:
+      - description: task_id — UUID или null
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_user.SetCurrentTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_user.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Установить текущую задачу в работе
+      tags:
+      - user
+  /api/v1/users/me/tasks:
+    get:
+      consumes:
+      - application/json
+      description: 'Задачи, где текущий пользователь — исполнитель. Поле in_work:
+        true только у задачи, выбранной как «текущая в работе» (не более одной).'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_user.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Мои задачи (исполнитель)
       tags:
       - user
   /api/v1/users/me/work-status:

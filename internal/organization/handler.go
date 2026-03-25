@@ -417,7 +417,7 @@ func (h *Handler) AddMember(c *gin.Context) {
 
 // GetMembers godoc
 // @Summary Список участников организации
-// @Description Возвращает всех пользователей, входящих в организацию. Доступ только для членов организации.
+// @Description Возвращает всех пользователей, входящих в организацию. У каждого участника: work_status, current_task_id и current_task {id, title, project_id} — текущая задача в работе (если есть). Доступ только для членов организации.
 // @Tags organizations
 // @Produce json
 // @Security BearerAuth
@@ -452,21 +452,37 @@ func (h *Handler) GetMembers(c *gin.Context) {
 
 	items := make([]gin.H, 0, len(members))
 	for _, m := range members {
-		u := m.User
-		h := gin.H{
-			"id":         u.ID.String(),
-			"email":      u.Email,
-			"firstname":  u.FirstName,
-			"lastname":   u.LastName,
-			"middlename": u.MiddleName,
-			"role":       m.Role,
-		}
-		if u.AvatarURL != "" {
-			h["avatar_url"] = storage.AvatarURLForResponse(u.AvatarURL)
-		}
-		items = append(items, h)
+		items = append(items, memberWithRoleToH(m))
 	}
 	response.Data(c, http.StatusOK, gin.H{"members": items})
+}
+
+func memberWithRoleToH(m *domain.MemberWithRole) gin.H {
+	u := m.User
+	h := gin.H{
+		"id":          u.ID.String(),
+		"email":       u.Email,
+		"firstname":   u.FirstName,
+		"lastname":    u.LastName,
+		"middlename":  u.MiddleName,
+		"role":        m.Role,
+		"work_status": u.WorkStatus,
+	}
+	if u.AvatarURL != "" {
+		h["avatar_url"] = storage.AvatarURLForResponse(u.AvatarURL)
+	}
+	if m.CurrentTask != nil {
+		h["current_task_id"] = m.CurrentTask.ID.String()
+		h["current_task"] = gin.H{
+			"id":         m.CurrentTask.ID.String(),
+			"title":      m.CurrentTask.Title,
+			"project_id": m.CurrentTask.ProjectID.String(),
+		}
+	} else {
+		h["current_task_id"] = nil
+		h["current_task"] = nil
+	}
+	return h
 }
 
 // RemoveMember godoc

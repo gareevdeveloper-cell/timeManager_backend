@@ -1,0 +1,4 @@
+ALTER TABLE tasks
+    DROP COLUMN IF EXISTS type,
+    DROP COLUMN IF EXISTS tags,
+    DROP COLUMN IF EXISTS result_url;

@@ -94,12 +94,14 @@ func New(cfg *config.Config) (*App, error) {
 	go hub.Run()
 
 	statusPublisher := ws.NewHubWorkStatusPublisher(hub)
+	taskPublisher := ws.NewHubTaskPublisher(hub)
 	wsHandler := ws.NewHandler(hub, authService)
 
 	userRepo := user.NewPostgresUserRepository(pool)
 	userSkillRepo := user.NewPostgresSkillRepository(pool)
 	userStatusHistRepo := user.NewPostgresWorkStatusHistoryRepository(pool)
-	userService := user.NewService(userRepo, userSkillRepo, userStatusHistRepo, minioStorage, statusPublisher)
+	taskRepo := project.NewPostgresTaskRepository(pool)
+	userService := user.NewService(userRepo, taskRepo, userSkillRepo, userStatusHistRepo, minioStorage, statusPublisher)
 	userHandler := user.NewHandler(userService)
 
 	authHandler := auth.NewHandler(authService, auth.HandlerConfig{
@@ -116,8 +118,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	projectRepo := project.NewPostgresProjectRepository(pool)
 	projectStatusRepo := project.NewPostgresProjectStatusRepository(pool)
-	taskRepo := project.NewPostgresTaskRepository(pool)
-	projectService := project.NewService(projectRepo, projectStatusRepo, taskRepo, teamRepo)
+	projectService := project.NewService(projectRepo, projectStatusRepo, taskRepo, teamRepo, taskPublisher)
 	projectHandler := project.NewHandler(projectService)
 	filesHandler := files.NewHandler(minioStorage)
 

@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
@@ -174,12 +175,14 @@ func (r *PostgresRepository) ListByMember(ctx context.Context, userID uuid.UUID)
 	return orgs, rows.Err()
 }
 
-// ListMembers возвращает участников организации с ролями.
+// ListMembers возвращает участников организации с ролями и текущей задачей (LEFT JOIN tasks).
 func (r *PostgresRepository) ListMembers(ctx context.Context, orgID uuid.UUID) ([]*domain.MemberWithRole, error) {
 	query := `
-		SELECT u.id, u.email, u.password_hash, u.firstname, u.lastname, u.middlename, u.birthday, u.role, u.status, COALESCE(u.avatar_url, ''), u.created_at, u.updated_at, COALESCE(om.role, 'participant')
+		SELECT u.id, u.email, u.password_hash, u.firstname, u.lastname, u.middlename, u.birthday, u.role, u.status, COALESCE(u.work_status::text, 'working'), COALESCE(u.avatar_url, ''), u.created_at, u.updated_at, COALESCE(om.role, 'participant'),
+		       ct.id, ct.title, ct.project_id
 		FROM users u
 		INNER JOIN organization_members om ON om.user_id = u.id
+		LEFT JOIN tasks ct ON ct.id = u.current_task_id
 		WHERE om.organization_id = $1
 		ORDER BY u.firstname, u.lastname
 	`
@@ -193,11 +196,22 @@ func (r *PostgresRepository) ListMembers(ctx context.Context, orgID uuid.UUID) (
 	for rows.Next() {
 		var u domain.User
 		var memberRole string
+		var ctID, ctProjID *uuid.UUID
+		var ctTitle sql.NullString
 		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.MiddleName,
-			&u.Birthday, &u.Role, &u.Status, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt, &memberRole); err != nil {
+			&u.Birthday, &u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt, &memberRole,
+			&ctID, &ctTitle, &ctProjID); err != nil {
 			return nil, err
 		}
-		members = append(members, &domain.MemberWithRole{User: &u, Role: memberRole})
+		var ct *domain.MemberCurrentTask
+		if ctID != nil && ctProjID != nil {
+			title := ""
+			if ctTitle.Valid {
+				title = ctTitle.String
+			}
+			ct = &domain.MemberCurrentTask{ID: *ctID, Title: title, ProjectID: *ctProjID}
+		}
+		members = append(members, &domain.MemberWithRole{User: &u, Role: memberRole, CurrentTask: ct})
 	}
 	return members, rows.Err()
 }

@@ -12,6 +12,12 @@ import (
 	"testik/internal/domain"
 )
 
+// TaskEventPublisher — публикация событий задач в WebSocket (опционально).
+type TaskEventPublisher interface {
+	PublishTaskChanged(projectID, taskID uuid.UUID, action string)
+	PublishTaskStatusChanged(projectID, taskID uuid.UUID, statusKey string, statusID uuid.UUID)
+}
+
 // Дефолтные статусы при создании проекта.
 var defaultStatuses = []struct{ key, title string }{
 	{"TODO", "To Do"},
@@ -22,19 +28,21 @@ var defaultStatuses = []struct{ key, title string }{
 
 // Service — сервис проектов и задач.
 type Service struct {
-	projectRepo     ProjectRepository
+	projectRepo       ProjectRepository
 	projectStatusRepo ProjectStatusRepository
-	taskRepo        TaskRepository
-	teamRepo        TeamRepository
+	taskRepo          TaskRepository
+	teamRepo          TeamRepository
+	taskPub           TaskEventPublisher
 }
 
 // NewService создаёт сервис.
-func NewService(projectRepo ProjectRepository, projectStatusRepo ProjectStatusRepository, taskRepo TaskRepository, teamRepo TeamRepository) *Service {
+func NewService(projectRepo ProjectRepository, projectStatusRepo ProjectStatusRepository, taskRepo TaskRepository, teamRepo TeamRepository, taskPub TaskEventPublisher) *Service {
 	return &Service{
 		projectRepo:       projectRepo,
 		projectStatusRepo: projectStatusRepo,
 		taskRepo:          taskRepo,
 		teamRepo:          teamRepo,
+		taskPub:           taskPub,
 	}
 }
 
@@ -189,6 +197,14 @@ func (s *Service) CreateTask(ctx context.Context, projectID, reporterID uuid.UUI
 		priority = req.Priority
 	}
 
+	taskType := domain.TaskTypeTask
+	if req.Type != "" {
+		if !contains(domain.ValidTaskTypes, req.Type) {
+			return nil, ErrInvalidType
+		}
+		taskType = req.Type
+	}
+
 	var assigneeID *uuid.UUID
 	if req.AssigneeID != nil && *req.AssigneeID != "" {
 		u, parseErr := uuid.Parse(*req.AssigneeID)
@@ -207,6 +223,11 @@ func (s *Service) CreateTask(ctx context.Context, projectID, reporterID uuid.UUI
 		dueDate = &t
 	}
 
+	tags := req.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
 	now := time.Now()
 	t := &domain.Task{
 		ID:          uuid.New(),
@@ -214,17 +235,25 @@ func (s *Service) CreateTask(ctx context.Context, projectID, reporterID uuid.UUI
 		Key:         key,
 		Title:       strings.TrimSpace(req.Title),
 		Description: strings.TrimSpace(req.Description),
+		StatusID:    firstStatus.ID,
 		Status:      firstStatus.Key,
+		Type:        taskType,
 		Priority:    priority,
 		AssigneeID:  assigneeID,
 		ReporterID:  reporterID,
 		DueDate:     dueDate,
+		Tags:        tags,
+		ResultURL:   strings.TrimSpace(req.ResultURL),
 		Order:       0,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
 	if err := s.taskRepo.Create(ctx, t); err != nil {
 		return nil, fmt.Errorf("create task: %w", err)
+	}
+	if s.taskPub != nil {
+		s.taskPub.PublishTaskChanged(projectID, t.ID, "created")
+		s.taskPub.PublishTaskStatusChanged(projectID, t.ID, t.Status, t.StatusID)
 	}
 	return t, nil
 }
@@ -245,12 +274,25 @@ func (s *Service) GetTask(ctx context.Context, taskID, userID uuid.UUID) (*domai
 	return t, nil
 }
 
+func validateTaskListFilter(filter TaskListFilter) error {
+	if filter.Type != "" && !contains(domain.ValidTaskTypes, filter.Type) {
+		return ErrInvalidType
+	}
+	if filter.DueFrom != nil && filter.DueTo != nil && filter.DueFrom.After(*filter.DueTo) {
+		return fmt.Errorf("%w: due_from must be before or equal to due_to", ErrInvalidRequest)
+	}
+	return nil
+}
+
 // ListTasks возвращает задачи проекта. Проверяет доступ.
-func (s *Service) ListTasks(ctx context.Context, projectID, userID uuid.UUID, status string) ([]*domain.Task, error) {
+func (s *Service) ListTasks(ctx context.Context, projectID, userID uuid.UUID, filter TaskListFilter) ([]*domain.Task, error) {
 	if _, err := s.GetProject(ctx, projectID, userID); err != nil {
 		return nil, err
 	}
-	return s.taskRepo.ListByProjectID(ctx, projectID, status)
+	if err := validateTaskListFilter(filter); err != nil {
+		return nil, err
+	}
+	return s.taskRepo.ListByProjectID(ctx, projectID, filter)
 }
 
 // UpdateTask частично обновляет задачу.
@@ -259,6 +301,7 @@ func (s *Service) UpdateTask(ctx context.Context, taskID, userID uuid.UUID, req 
 	if err != nil {
 		return nil, err
 	}
+	prevStatusID := t.StatusID
 
 	if req.Title != nil {
 		t.Title = strings.TrimSpace(*req.Title)
@@ -267,11 +310,12 @@ func (s *Service) UpdateTask(ctx context.Context, taskID, userID uuid.UUID, req 
 		t.Description = strings.TrimSpace(*req.Description)
 	}
 	if req.Status != nil {
-		exists, err := s.projectStatusRepo.ExistsByKey(ctx, t.ProjectID, *req.Status)
-		if err != nil || !exists {
+		st, err := s.projectStatusRepo.GetByProjectAndKey(ctx, t.ProjectID, *req.Status)
+		if err != nil || st == nil {
 			return nil, ErrInvalidStatus
 		}
-		t.Status = *req.Status
+		t.Status = st.Key
+		t.StatusID = st.ID
 	}
 	if req.Priority != nil {
 		if !contains(domain.ValidTaskPriorities, *req.Priority) {
@@ -285,7 +329,7 @@ func (s *Service) UpdateTask(ctx context.Context, taskID, userID uuid.UUID, req 
 		} else {
 			u, parseErr := uuid.Parse(*req.AssigneeID)
 			if parseErr != nil {
-				return nil, ErrInvalidPriority
+				return nil, fmt.Errorf("%w: invalid assignee_id", ErrInvalidRequest)
 			}
 			t.AssigneeID = &u
 		}
@@ -304,20 +348,49 @@ func (s *Service) UpdateTask(ctx context.Context, taskID, userID uuid.UUID, req 
 	if req.Order != nil {
 		t.Order = *req.Order
 	}
+	if req.Type != nil {
+		if !contains(domain.ValidTaskTypes, *req.Type) {
+			return nil, ErrInvalidType
+		}
+		t.Type = *req.Type
+	}
+	if req.Tags != nil {
+		t.Tags = *req.Tags
+		if t.Tags == nil {
+			t.Tags = []string{}
+		}
+	}
+	if req.ResultURL != nil {
+		t.ResultURL = strings.TrimSpace(*req.ResultURL)
+	}
 
 	t.UpdatedAt = time.Now()
 	if err := s.taskRepo.Update(ctx, t); err != nil {
 		return nil, fmt.Errorf("update task: %w", err)
+	}
+	if s.taskPub != nil {
+		s.taskPub.PublishTaskChanged(t.ProjectID, t.ID, "updated")
+		if prevStatusID != t.StatusID {
+			s.taskPub.PublishTaskStatusChanged(t.ProjectID, t.ID, t.Status, t.StatusID)
+		}
 	}
 	return t, nil
 }
 
 // DeleteTask удаляет задачу.
 func (s *Service) DeleteTask(ctx context.Context, taskID, userID uuid.UUID) error {
-	if _, err := s.GetTask(ctx, taskID, userID); err != nil {
+	t, err := s.GetTask(ctx, taskID, userID)
+	if err != nil {
 		return err
 	}
-	return s.taskRepo.Delete(ctx, taskID)
+	projectID := t.ProjectID
+	if err := s.taskRepo.Delete(ctx, taskID); err != nil {
+		return err
+	}
+	if s.taskPub != nil {
+		s.taskPub.PublishTaskChanged(projectID, taskID, "deleted")
+	}
+	return nil
 }
 
 // BoardColumn — колонка канбан-доски.
@@ -329,15 +402,19 @@ type BoardColumn struct {
 }
 
 // GetBoard возвращает канбан-доску для проекта. Колонки строятся из динамических статусов проекта.
-func (s *Service) GetBoard(ctx context.Context, projectID, userID uuid.UUID) ([]BoardColumn, error) {
+// Фильтр такой же, как у ListTasks (assignee_id, title, type, due_from, due_to, status).
+func (s *Service) GetBoard(ctx context.Context, projectID, userID uuid.UUID, filter TaskListFilter) ([]BoardColumn, error) {
 	if _, err := s.GetProject(ctx, projectID, userID); err != nil {
+		return nil, err
+	}
+	if err := validateTaskListFilter(filter); err != nil {
 		return nil, err
 	}
 	statuses, err := s.projectStatusRepo.ListByProjectID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
-	grouped, err := s.taskRepo.ListByProjectIDGroupedByStatus(ctx, projectID)
+	grouped, err := s.taskRepo.ListByProjectIDGroupedByStatus(ctx, projectID, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -392,6 +469,13 @@ func (s *Service) CreateStatus(ctx context.Context, projectID, userID uuid.UUID,
 	if ps.Title == "" {
 		ps.Title = key
 	}
+	dupTitle, err := s.projectStatusRepo.ExistsByTitle(ctx, projectID, ps.Title, nil)
+	if err != nil {
+		return nil, err
+	}
+	if dupTitle {
+		return nil, ErrStatusTitleExists
+	}
 	if err := s.projectStatusRepo.Create(ctx, ps); err != nil {
 		return nil, fmt.Errorf("create status: %w", err)
 	}
@@ -407,6 +491,7 @@ func (s *Service) UpdateStatus(ctx context.Context, statusID, userID uuid.UUID, 
 	if _, err := s.GetProject(ctx, ps.ProjectID, userID); err != nil {
 		return nil, err
 	}
+	oldKey := ps.Key
 	if key != "" {
 		newKey := strings.ToUpper(strings.TrimSpace(key))
 		if newKey != ps.Key {
@@ -421,7 +506,20 @@ func (s *Service) UpdateStatus(ctx context.Context, statusID, userID uuid.UUID, 
 		}
 	}
 	if title != "" {
+		nt := strings.TrimSpace(title)
+		if nt != ps.Title {
+			dup, err := s.projectStatusRepo.ExistsByTitle(ctx, ps.ProjectID, nt, &ps.ID)
+			if err != nil {
+				return nil, err
+			}
+			if dup {
+				return nil, ErrStatusTitleExists
+			}
+		}
 		ps.Title = strings.TrimSpace(title)
+		if ps.Title == "" {
+			ps.Title = ps.Key
+		}
 	}
 	if order != nil {
 		ps.Order = *order
@@ -429,11 +527,16 @@ func (s *Service) UpdateStatus(ctx context.Context, statusID, userID uuid.UUID, 
 	if err := s.projectStatusRepo.Update(ctx, ps); err != nil {
 		return nil, fmt.Errorf("update status: %w", err)
 	}
+	if ps.Key != oldKey {
+		if err := s.taskRepo.UpdateTaskStatusKeyByStatusID(ctx, ps.ID, ps.Key); err != nil {
+			return nil, fmt.Errorf("sync task status key: %w", err)
+		}
+	}
 	return ps, nil
 }
 
-// DeleteStatus удаляет статус. Задачи с этим статусом должны быть обработаны (например, перенесены).
-func (s *Service) DeleteStatus(ctx context.Context, statusID, userID uuid.UUID) error {
+// DeleteStatus удаляет статус и переносит задачи в колонку moveToID (тот же проект). Нельзя удалить последний статус.
+func (s *Service) DeleteStatus(ctx context.Context, statusID, userID, moveToID uuid.UUID) error {
 	ps, err := s.projectStatusRepo.GetByID(ctx, statusID)
 	if err != nil || ps == nil {
 		return ErrStatusNotFound
@@ -441,7 +544,7 @@ func (s *Service) DeleteStatus(ctx context.Context, statusID, userID uuid.UUID) 
 	if _, err := s.GetProject(ctx, ps.ProjectID, userID); err != nil {
 		return err
 	}
-	return s.projectStatusRepo.Delete(ctx, statusID)
+	return s.projectStatusRepo.DeleteWithMove(ctx, statusID, moveToID)
 }
 
 func contains(slice []string, v string) bool {

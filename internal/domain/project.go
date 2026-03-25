@@ -36,6 +36,13 @@ const (
 	TaskPriorityCritical = "CRITICAL"
 )
 
+// TaskType — допустимые типы задач.
+const (
+	TaskTypeBug   = "BUG"
+	TaskTypeTask  = "TASK"
+	TaskTypeStory = "STORY"
+)
+
 // ValidTaskStatuses — все допустимые статусы.
 var ValidTaskStatuses = []string{
 	TaskStatusTODO, TaskStatusInProgress, TaskStatusInReview, TaskStatusDone,
@@ -44,4 +51,9 @@ var ValidTaskStatuses = []string{
 // ValidTaskPriorities — все допустимые приоритеты.
 var ValidTaskPriorities = []string{
 	TaskPriorityLow, TaskPriorityMedium, TaskPriorityHigh, TaskPriorityCritical,
+}
+
+// ValidTaskTypes — все допустимые типы задач.
+var ValidTaskTypes = []string{
+	TaskTypeBug, TaskTypeTask, TaskTypeStory,
 }

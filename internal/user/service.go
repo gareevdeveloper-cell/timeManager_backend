@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -18,6 +19,7 @@ type WorkStatusPublisher interface {
 // Service — сервис управления профилем пользователя.
 type Service struct {
 	repo         UserRepository
+	tasks        AssigneeTaskReader
 	skillRepo    SkillRepository
 	statusHist   WorkStatusHistoryRepository
 	storage      storage.Storage
@@ -25,9 +27,10 @@ type Service struct {
 }
 
 // NewService создаёт UserService.
-func NewService(repo UserRepository, skillRepo SkillRepository, statusHist WorkStatusHistoryRepository, st storage.Storage, statusPub WorkStatusPublisher) *Service {
+func NewService(repo UserRepository, tasks AssigneeTaskReader, skillRepo SkillRepository, statusHist WorkStatusHistoryRepository, st storage.Storage, statusPub WorkStatusPublisher) *Service {
 	return &Service{
 		repo:       repo,
+		tasks:      tasks,
 		skillRepo:  skillRepo,
 		statusHist: statusHist,
 		storage:    st,
@@ -50,14 +53,17 @@ func (s *Service) GetUserSkills(ctx context.Context, userID string) ([]string, e
 
 // UpdateProfileInput — входные данные для обновления профиля.
 type UpdateProfileInput struct {
-	About    string
-	Position string
-	Skills   []string // nil = не менять, [] = очистить, [x,y] = заменить
+	FirstName string
+	LastName  string
+	Birthday  *time.Time // nil в БД — нет даты; значение — установить дату
+	About     string
+	Position  string
+	Skills    []string // nil = не менять, [] = очистить, [x,y] = заменить
 }
 
 // UpdateProfile обновляет профиль пользователя.
 func (s *Service) UpdateProfile(ctx context.Context, userID string, in UpdateProfileInput) (*domain.User, error) {
-	if err := s.repo.UpdateProfile(ctx, userID, in.About, in.Position); err != nil {
+	if err := s.repo.UpdateProfile(ctx, userID, in.FirstName, in.LastName, in.Birthday, in.About, in.Position); err != nil {
 		return nil, err
 	}
 	if in.Skills != nil {
@@ -91,6 +97,67 @@ func (s *Service) GetWorkStatusHistory(ctx context.Context, userID string, limit
 		return nil, nil
 	}
 	return s.statusHist.GetByUserID(ctx, userID, limit)
+}
+
+// AssigneeTaskItem — задача в списке «мои задачи» с отметкой «в работе».
+type AssigneeTaskItem struct {
+	Task   *domain.Task
+	InWork bool
+}
+
+// ListMyAssigneeTasks возвращает все задачи, где пользователь — исполнитель.
+// InWork == true только у задачи, id которой совпадает с current_task_id пользователя (не больше одной).
+func (s *Service) ListMyAssigneeTasks(ctx context.Context, userID string) ([]AssigneeTaskItem, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+	u, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	tasks, err := s.tasks.ListByAssigneeID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	var currentID *uuid.UUID
+	if u != nil {
+		currentID = u.CurrentTaskID
+	}
+	out := make([]AssigneeTaskItem, 0, len(tasks))
+	for _, t := range tasks {
+		inWork := currentID != nil && *currentID == t.ID
+		out = append(out, AssigneeTaskItem{Task: t, InWork: inWork})
+	}
+	return out, nil
+}
+
+// SetCurrentTask задаёт задачу «в работе» (только одна; должна быть назначена на пользователя). taskID == nil — сброс.
+func (s *Service) SetCurrentTask(ctx context.Context, userID string, taskID *uuid.UUID) (*domain.User, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+	if taskID == nil {
+		if err := s.repo.UpdateCurrentTaskID(ctx, userID, nil); err != nil {
+			return nil, err
+		}
+		return s.repo.GetByID(ctx, userID)
+	}
+	t, err := s.tasks.GetByID(ctx, *taskID)
+	if err != nil {
+		return nil, err
+	}
+	if t == nil {
+		return nil, ErrCurrentTaskNotFound
+	}
+	if t.AssigneeID == nil || *t.AssigneeID != uid {
+		return nil, ErrCurrentTaskNotAssignee
+	}
+	if err := s.repo.UpdateCurrentTaskID(ctx, userID, taskID); err != nil {
+		return nil, err
+	}
+	return s.repo.GetByID(ctx, userID)
 }
 
 // SetAvatar устанавливает аватарку пользователя.

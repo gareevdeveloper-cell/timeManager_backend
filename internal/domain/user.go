@@ -23,6 +23,7 @@ type User struct {
 	Status          string // активность аккаунта: active, inactive
 	WorkStatus      string // рабочий статус: не работает, отдыхает, обед, отпуск, больничный, командировка
 	AvatarURL       string
+	CurrentTaskID   *uuid.UUID // задача «в работе» (не более одной)
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

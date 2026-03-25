@@ -32,7 +32,6 @@ func main() {
 	}
 
 	a, err := app.New(cfg)
-	log.Println("app: %v", cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("app: %v", err)
 	}

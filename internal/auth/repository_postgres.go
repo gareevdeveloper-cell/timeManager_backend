@@ -54,14 +54,14 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (
 	query := `
 		SELECT id, email, COALESCE(password_hash, ''), COALESCE(oauth_provider, ''), COALESCE(oauth_provider_id, ''),
 			firstname, lastname, middlename, birthday, COALESCE(about, ''), COALESCE(position, ''),
-			role, status, COALESCE(work_status::text, 'working'), COALESCE(avatar_url, ''), created_at, updated_at
+			role, status, COALESCE(work_status::text, 'working'), COALESCE(avatar_url, ''), current_task_id, created_at, updated_at
 		FROM users WHERE email = $1
 	`
 	var u domain.User
 	err := r.pool.QueryRow(ctx, query, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.OAuthProvider, &u.OAuthProviderID,
 		&u.FirstName, &u.LastName, &u.MiddleName, &u.Birthday, &u.About, &u.Position,
-		&u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt,
+		&u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CurrentTaskID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -74,14 +74,14 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (*domai
 	query := `
 		SELECT id, email, COALESCE(password_hash, ''), COALESCE(oauth_provider, ''), COALESCE(oauth_provider_id, ''),
 			firstname, lastname, middlename, birthday, COALESCE(about, ''), COALESCE(position, ''),
-			role, status, COALESCE(work_status::text, 'working'), COALESCE(avatar_url, ''), created_at, updated_at
+			role, status, COALESCE(work_status::text, 'working'), COALESCE(avatar_url, ''), current_task_id, created_at, updated_at
 		FROM users WHERE id = $1
 	`
 	var u domain.User
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.OAuthProvider, &u.OAuthProviderID,
 		&u.FirstName, &u.LastName, &u.MiddleName, &u.Birthday, &u.About, &u.Position,
-		&u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt,
+		&u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CurrentTaskID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -94,14 +94,14 @@ func (r *PostgresUserRepository) GetByOAuthID(ctx context.Context, provider, pro
 	query := `
 		SELECT id, email, COALESCE(password_hash, ''), COALESCE(oauth_provider, ''), COALESCE(oauth_provider_id, ''),
 			firstname, lastname, middlename, birthday, COALESCE(about, ''), COALESCE(position, ''),
-			role, status, COALESCE(work_status::text, 'working'), COALESCE(avatar_url, ''), created_at, updated_at
+			role, status, COALESCE(work_status::text, 'working'), COALESCE(avatar_url, ''), current_task_id, created_at, updated_at
 		FROM users WHERE oauth_provider = $1 AND oauth_provider_id = $2
 	`
 	var u domain.User
 	err := r.pool.QueryRow(ctx, query, provider, providerID).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.OAuthProvider, &u.OAuthProviderID,
 		&u.FirstName, &u.LastName, &u.MiddleName, &u.Birthday, &u.About, &u.Position,
-		&u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt,
+		&u.Role, &u.Status, &u.WorkStatus, &u.AvatarURL, &u.CurrentTaskID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

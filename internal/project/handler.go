@@ -3,6 +3,8 @@ package project
 import (
 	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -34,6 +36,37 @@ func getCurrentUserID(c *gin.Context) (uuid.UUID, bool) {
 	return parsed, true
 }
 
+// parseTaskListFilter читает query-параметры списка задач. Второе значение — сообщение об ошибке валидации (если непустое).
+func parseTaskListFilter(c *gin.Context) (TaskListFilter, string) {
+	f := TaskListFilter{
+		Status: c.Query("status"),
+		Title:  strings.TrimSpace(c.Query("title")),
+		Type:   strings.TrimSpace(c.Query("type")),
+	}
+	if aid := strings.TrimSpace(c.Query("assignee_id")); aid != "" {
+		u, err := uuid.Parse(aid)
+		if err != nil {
+			return TaskListFilter{}, "invalid assignee_id"
+		}
+		f.AssigneeID = &u
+	}
+	if df := strings.TrimSpace(c.Query("due_from")); df != "" {
+		t, err := time.Parse(time.RFC3339, df)
+		if err != nil {
+			return TaskListFilter{}, "invalid due_from (use RFC3339)"
+		}
+		f.DueFrom = &t
+	}
+	if dt := strings.TrimSpace(c.Query("due_to")); dt != "" {
+		t, err := time.Parse(time.RFC3339, dt)
+		if err != nil {
+			return TaskListFilter{}, "invalid due_to (use RFC3339)"
+		}
+		f.DueTo = &t
+	}
+	return f, ""
+}
+
 func projectToH(p *domain.Project) gin.H {
 	h := gin.H{
 		"id": p.ID.String(), "key": p.Key, "name": p.Name, "description": p.Description,
@@ -50,9 +83,9 @@ func projectToH(p *domain.Project) gin.H {
 func taskToH(t *domain.Task) gin.H {
 	h := gin.H{
 		"id": t.ID.String(), "project_id": t.ProjectID.String(), "key": t.Key,
-		"title": t.Title, "description": t.Description, "status": t.Status, "priority": t.Priority,
-		"reporter_id": t.ReporterID.String(), "order": t.Order,
-		"created_at": t.CreatedAt, "updated_at": t.UpdatedAt,
+		"title": t.Title, "description": t.Description, "status": t.Status, "status_id": t.StatusID.String(), "type": t.Type, "priority": t.Priority,
+		"reporter_id": t.ReporterID.String(), "author_id": t.ReporterID.String(), "order": t.Order,
+		"tags": t.Tags, "created_at": t.CreatedAt, "updated_at": t.UpdatedAt,
 	}
 	if t.AssigneeID != nil {
 		h["assignee_id"] = t.AssigneeID.String()
@@ -63,6 +96,14 @@ func taskToH(t *domain.Task) gin.H {
 		h["due_date"] = t.DueDate.Format("2006-01-02T15:04:05Z07:00")
 	} else {
 		h["due_date"] = nil
+	}
+	if t.ResultURL != "" {
+		h["result_url"] = t.ResultURL
+	} else {
+		h["result_url"] = nil
+	}
+	if t.Tags == nil {
+		h["tags"] = []string{}
 	}
 	return h
 }
@@ -199,7 +240,7 @@ func (h *Handler) GetProject(c *gin.Context) {
 
 // GetProjectMembers godoc
 // @Summary Участники проекта
-// @Description Возвращает участников проекта с ролями. Доступ: владелец или член команды.
+// @Description Возвращает участников проекта с ролями. У каждого: current_task_id и current_task {id, title, project_id} — текущая задача в работе (если есть). Доступ: владелец или член команды.
 // @Tags projects
 // @Produce json
 // @Security BearerAuth
@@ -238,21 +279,36 @@ func (h *Handler) GetProjectMembers(c *gin.Context) {
 
 	items := make([]gin.H, 0, len(members))
 	for _, m := range members {
-		u := m.User
-		item := gin.H{
-			"id":         u.ID.String(),
-			"email":      u.Email,
-			"firstname":  u.FirstName,
-			"lastname":   u.LastName,
-			"middlename": u.MiddleName,
-			"role":       m.Role,
-		}
-		if u.AvatarURL != "" {
-			item["avatar_url"] = storage.AvatarURLForResponse(u.AvatarURL)
-		}
-		items = append(items, item)
+		items = append(items, memberWithRoleToH(m))
 	}
 	response.Data(c, http.StatusOK, gin.H{"members": items})
+}
+
+func memberWithRoleToH(m *domain.MemberWithRole) gin.H {
+	u := m.User
+	h := gin.H{
+		"id":         u.ID.String(),
+		"email":      u.Email,
+		"firstname":  u.FirstName,
+		"lastname":   u.LastName,
+		"middlename": u.MiddleName,
+		"role":       m.Role,
+	}
+	if u.AvatarURL != "" {
+		h["avatar_url"] = storage.AvatarURLForResponse(u.AvatarURL)
+	}
+	if m.CurrentTask != nil {
+		h["current_task_id"] = m.CurrentTask.ID.String()
+		h["current_task"] = gin.H{
+			"id":         m.CurrentTask.ID.String(),
+			"title":      m.CurrentTask.Title,
+			"project_id": m.CurrentTask.ProjectID.String(),
+		}
+	} else {
+		h["current_task_id"] = nil
+		h["current_task"] = nil
+	}
+	return h
 }
 
 // ListStatuses godoc
@@ -352,6 +408,8 @@ func (h *Handler) CreateStatus(c *gin.Context) {
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
 		case errors.Is(err, ErrStatusKeyExists):
 			response.Error(c, http.StatusConflict, "status_key_exists", "status with this key already exists")
+		case errors.Is(err, ErrStatusTitleExists):
+			response.Error(c, http.StatusConflict, "status_title_exists", "status with this title already exists")
 		case errors.Is(err, ErrInvalidRequest):
 			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
 		default:
@@ -414,6 +472,8 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
 		case errors.Is(err, ErrStatusKeyExists):
 			response.Error(c, http.StatusConflict, "status_key_exists", "status with this key already exists")
+		case errors.Is(err, ErrStatusTitleExists):
+			response.Error(c, http.StatusConflict, "status_title_exists", "status with this title already exists")
 		default:
 			response.Error(c, http.StatusInternalServerError, "internal_error", "failed to update status")
 		}
@@ -431,15 +491,18 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 
 // DeleteStatus godoc
 // @Summary Удалить статус
-// @Description Удаляет статус (колонку). Задачи с этим статусом останутся в БД — при отображении доски могут быть не показаны.
+// @Description Удаляет колонку (статус). Переносит все задачи в колонку move_to_status_id (query). Нельзя удалить последний статус.
 // @Tags projects
 // @Produce json
 // @Security BearerAuth
-// @Param statusId path string true "ID статуса"
+// @Param statusId path string true "ID удаляемого статуса"
+// @Param move_to_status_id query string true "ID статуса того же проекта, куда перенести задачи"
 // @Success 204 "No Content"
+// @Failure 400 {object} project.ErrorResponse
 // @Failure 401 {object} project.ErrorResponse
 // @Failure 403 {object} project.ErrorResponse
 // @Failure 404 {object} project.ErrorResponse
+// @Failure 409 {object} project.ErrorResponse
 // @Failure 500 {object} project.ErrorResponse
 // @Router /api/v1/projects/statuses/{statusId} [delete]
 func (h *Handler) DeleteStatus(c *gin.Context) {
@@ -455,13 +518,28 @@ func (h *Handler) DeleteStatus(c *gin.Context) {
 		return
 	}
 
-	err = h.service.DeleteStatus(c.Request.Context(), statusID, userID)
+	moveTo := c.Query("move_to_status_id")
+	if moveTo == "" {
+		response.Error(c, http.StatusBadRequest, "validation_error", "move_to_status_id is required")
+		return
+	}
+	moveToID, err := uuid.Parse(moveTo)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "validation_error", "invalid move_to_status_id")
+		return
+	}
+
+	err = h.service.DeleteStatus(c.Request.Context(), statusID, userID, moveToID)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrStatusNotFound):
 			response.Error(c, http.StatusNotFound, "not_found", "status not found")
 		case errors.Is(err, ErrForbidden):
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
+		case errors.Is(err, ErrLastStatusCannotDelete):
+			response.Error(c, http.StatusConflict, "last_status", "cannot delete the last status in project")
+		case errors.Is(err, ErrInvalidMoveTarget):
+			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
 		default:
 			response.Error(c, http.StatusInternalServerError, "internal_error", "failed to delete status")
 		}
@@ -513,7 +591,7 @@ func (h *Handler) CreateTask(c *gin.Context) {
 			response.Error(c, http.StatusNotFound, "not_found", "project not found")
 		case errors.Is(err, ErrForbidden):
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
-		case errors.Is(err, ErrInvalidPriority), errors.Is(err, ErrInvalidRequest):
+		case errors.Is(err, ErrInvalidPriority), errors.Is(err, ErrInvalidRequest), errors.Is(err, ErrInvalidType):
 			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
 		default:
 			response.Error(c, http.StatusInternalServerError, "internal_error", "failed to create task")
@@ -526,13 +604,19 @@ func (h *Handler) CreateTask(c *gin.Context) {
 
 // ListTasks godoc
 // @Summary Список задач проекта
-// @Description Возвращает задачи проекта. Опционально фильтр по status (query param).
+// @Description Возвращает задачи проекта. Опциональные query-фильтры: status, assignee_id, title (подстрока), type, due_from, due_to (RFC3339).
 // @Tags tasks
 // @Produce json
 // @Security BearerAuth
 // @Param projectId path string true "ID проекта"
 // @Param status query string false "Фильтр по статусу"
+// @Param assignee_id query string false "Фильтр по исполнителю (UUID)"
+// @Param title query string false "Подстрока заголовка (без учёта регистра)"
+// @Param type query string false "Тип: BUG, TASK, STORY"
+// @Param due_from query string false "Срок с (RFC3339), только задачи с due_date >= due_from"
+// @Param due_to query string false "Срок по (RFC3339), только задачи с due_date <= due_to"
 // @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} project.ErrorResponse
 // @Failure 401 {object} project.ErrorResponse
 // @Failure 403 {object} project.ErrorResponse
 // @Failure 404 {object} project.ErrorResponse
@@ -551,14 +635,23 @@ func (h *Handler) ListTasks(c *gin.Context) {
 		return
 	}
 
-	status := c.Query("status")
-	tasks, err := h.service.ListTasks(c.Request.Context(), projectID, userID, status)
+	filter, badQuery := parseTaskListFilter(c)
+	if badQuery != "" {
+		response.Error(c, http.StatusBadRequest, "validation_error", badQuery)
+		return
+	}
+
+	tasks, err := h.service.ListTasks(c.Request.Context(), projectID, userID, filter)
 	if err != nil {
-		switch err {
-		case ErrProjectNotFound:
+		switch {
+		case errors.Is(err, ErrProjectNotFound):
 			response.Error(c, http.StatusNotFound, "not_found", "project not found")
-		case ErrForbidden:
+		case errors.Is(err, ErrForbidden):
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
+		case errors.Is(err, ErrInvalidType):
+			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
+		case errors.Is(err, ErrInvalidRequest):
+			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
 		default:
 			response.Error(c, http.StatusInternalServerError, "internal_error", "failed to list tasks")
 		}
@@ -656,7 +749,7 @@ func (h *Handler) UpdateTask(c *gin.Context) {
 			response.Error(c, http.StatusNotFound, "not_found", "task not found")
 		case ErrForbidden:
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
-		case ErrInvalidStatus, ErrInvalidPriority:
+		case ErrInvalidStatus, ErrInvalidPriority, ErrInvalidType:
 			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
 		default:
 			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
@@ -711,12 +804,19 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 
 // GetBoard godoc
 // @Summary Канбан-доска проекта
-// @Description Возвращает доску с колонками (TODO, IN_PROGRESS, IN_REVIEW, DONE) и задачами в каждой.
+// @Description Возвращает доску с колонками (динамические статусы) и задачами в каждой. Те же query-фильтры, что у списка задач: status, assignee_id, title, type, due_from, due_to.
 // @Tags projects
 // @Produce json
 // @Security BearerAuth
 // @Param projectId path string true "ID проекта"
+// @Param status query string false "Фильтр по статусу"
+// @Param assignee_id query string false "Фильтр по исполнителю (UUID)"
+// @Param title query string false "Подстрока заголовка (без учёта регистра)"
+// @Param type query string false "Тип: BUG, TASK, STORY"
+// @Param due_from query string false "Срок с (RFC3339)"
+// @Param due_to query string false "Срок по (RFC3339)"
 // @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} project.ErrorResponse
 // @Failure 401 {object} project.ErrorResponse
 // @Failure 403 {object} project.ErrorResponse
 // @Failure 404 {object} project.ErrorResponse
@@ -735,13 +835,23 @@ func (h *Handler) GetBoard(c *gin.Context) {
 		return
 	}
 
-	columns, err := h.service.GetBoard(c.Request.Context(), projectID, userID)
+	filter, badQuery := parseTaskListFilter(c)
+	if badQuery != "" {
+		response.Error(c, http.StatusBadRequest, "validation_error", badQuery)
+		return
+	}
+
+	columns, err := h.service.GetBoard(c.Request.Context(), projectID, userID, filter)
 	if err != nil {
-		switch err {
-		case ErrProjectNotFound:
+		switch {
+		case errors.Is(err, ErrProjectNotFound):
 			response.Error(c, http.StatusNotFound, "not_found", "project not found")
-		case ErrForbidden:
+		case errors.Is(err, ErrForbidden):
 			response.Error(c, http.StatusForbidden, "forbidden", "access denied")
+		case errors.Is(err, ErrInvalidType):
+			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
+		case errors.Is(err, ErrInvalidRequest):
+			response.Error(c, http.StatusBadRequest, "validation_error", err.Error())
 		default:
 			response.Error(c, http.StatusInternalServerError, "internal_error", "failed to get board")
 		}
@@ -757,6 +867,7 @@ func (h *Handler) GetBoard(c *gin.Context) {
 		colItems = append(colItems, gin.H{
 			"status": col.Status,
 			"title":  col.Title,
+			"order":  col.Order,
 			"tasks":  tasks,
 		})
 	}

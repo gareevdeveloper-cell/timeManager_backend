@@ -10,6 +10,8 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: timemanager
+      # Явный URL, чтобы перекрыть DATABASE_URL из .env (иначе возможен неверный пароль на сервере).
+      DATABASE_URL: postgres://postgres:postgres@db:5432/timemanager?sslmode=disable
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin

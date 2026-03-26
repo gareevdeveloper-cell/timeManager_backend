@@ -46,7 +46,7 @@ func Load() (*Config, error) {
 			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 			env.Get("DB_USER", "postgres"),
 			env.Get("DB_PASSWORD", "postgres"),
-			env.Get("DB_HOST", "localhost"),
+			env.Get("DB_HOST", "db"),
 			env.Get("DB_PORT", "5432"),
 			dbName,
 		)

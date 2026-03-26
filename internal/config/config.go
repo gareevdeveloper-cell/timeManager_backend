@@ -2,11 +2,27 @@ package config
 
 import (
 	"fmt"
+	"net/url"
+	"os"
 	"strconv"
 	"time"
 
 	"testik/pkg/env"
 )
+
+// postgresURLFromParts собирает DSN; пароль кодируется для спецсимволов в URL.
+func postgresURLFromParts(user, password, host, port, dbName string) string {
+	u := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(user, password),
+		Host:   host + ":" + port,
+		Path:   "/" + dbName,
+	}
+	q := u.Query()
+	q.Set("sslmode", "disable")
+	u.RawQuery = q.Encode()
+	return u.String()
+}
 
 // Config — конфигурация приложения.
 type Config struct {
@@ -40,19 +56,32 @@ func Load() (*Config, error) {
 	expiresMin, _ := strconv.Atoi(env.Get("JWT_EXPIRES_MINUTES", "60"))
 
 	dbName := env.Get("DB_NAME", "timemanager")
-	dbURL := env.Get("DATABASE_URL", "")
-	fmt.Println("DB_NAME: " + dbName)
-	fmt.Println("dbURL: " + dbURL)
-	if dbURL == "" {
-		dbURL = fmt.Sprintf(
-			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	// Если задан DB_HOST (типично Docker Compose / «соседний» контейнер), строку
+	// подключения собираем только из DB_* — так устаревший или ошибочный DATABASE_URL
+	// из .env не перекрывает пароль из окружения контейнера.
+	var dbURL string
+	if host := os.Getenv("DB_HOST"); host != "" {
+		dbURL = postgresURLFromParts(
 			env.Get("DB_USER", "postgres"),
 			env.Get("DB_PASSWORD", "postgres"),
-			env.Get("DB_HOST", "db"),
+			host,
 			env.Get("DB_PORT", "5432"),
 			dbName,
 		)
+	} else {
+		dbURL = env.Get("DATABASE_URL", "")
+		if dbURL == "" {
+			dbURL = postgresURLFromParts(
+				env.Get("DB_USER", "postgres"),
+				env.Get("DB_PASSWORD", "postgres"),
+				"localhost",
+				env.Get("DB_PORT", "5432"),
+				dbName,
+			)
+		}
 	}
+
+	fmt.Println("dbURL: " + dbURL)
 
 	jwtSecret := env.Get("JWT_SECRET", "")
 	if jwtSecret == "" {

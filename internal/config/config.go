@@ -41,6 +41,8 @@ func Load() (*Config, error) {
 
 	dbName := env.Get("DB_NAME", "timemanager")
 	dbURL := env.Get("DATABASE_URL", "")
+	fmt.Println("DB_NAME: " + dbName)
+	fmt.Println("dbURL: " + dbURL)
 	if dbURL == "" {
 		dbURL = fmt.Sprintf(
 			"postgres://%s:%s@%s:%s/%s?sslmode=disable",

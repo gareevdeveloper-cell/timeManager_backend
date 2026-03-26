@@ -39,6 +39,7 @@ func Load() (*Config, error) {
 	port, _ := strconv.Atoi(env.Get("HTTP_PORT", "8080"))
 	expiresMin, _ := strconv.Atoi(env.Get("JWT_EXPIRES_MINUTES", "60"))
 
+	dbName := env.Get("DB_NAME", "timemanager")
 	dbURL := env.Get("DATABASE_URL", "")
 	if dbURL == "" {
 		dbURL = fmt.Sprintf(
@@ -47,7 +48,7 @@ func Load() (*Config, error) {
 			env.Get("DB_PASSWORD", "postgres"),
 			env.Get("DB_HOST", "localhost"),
 			env.Get("DB_PORT", "5432"),
-			env.Get("DB_NAME", "testik"),
+			dbName,
 		)
 	}
 
